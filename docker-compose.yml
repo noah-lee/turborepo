@@ -1,0 +1,59 @@
+# Production-style compose for VPS deployment.
+# Local dev uses `pnpm dev` directly; this file is only for deploying.
+#
+# Topology:
+#   - `shared-pg` is the external network created by the postgres companion repo.
+#     The api joins it to reach `postgres:5432`.
+#   - `app` is a per-deployment bridge. api and web join it so web's nginx can
+#     resolve `api:3000`.
+#
+# Prereq on the VPS: the postgres repo's compose is up, and the shared-pg
+# network exists (`docker network ls | grep shared-pg`).
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      NODE_ENV: ${NODE_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Explicit origin required in production (config rejects "*").
+      CORS_ORIGIN: ${CORS_ORIGIN:?set to your web origin, e.g. https://app.example.com}
+      # Auth — all required to boot.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?required}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?required}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:?required}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:?required}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?required}
+      COOKIE_SECRET: ${COOKIE_SECRET:?required}
+      WEB_ORIGIN: ${WEB_ORIGIN:?required}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@example.com}
+      # Billing — all required to boot.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?required}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?required}
+      STRIPE_PREMIUM_PRICE_ID: ${STRIPE_PREMIUM_PRICE_ID:?required}
+    networks:
+      - app
+      - shared-pg
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app
+
+networks:
+  app:
+    driver: bridge
+  shared-pg:
+    external: true
