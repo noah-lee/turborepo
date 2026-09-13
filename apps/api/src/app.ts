@@ -6,13 +6,11 @@ import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import { authPlugin } from './auth/plugin.ts';
 import { billingPlugin } from './billing/plugin.ts';
 import type { Config } from './config.ts';
-import { type EmailProvider, createEmailProvider } from './email/index.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {
     db: Database;
     config: Config;
-    email: EmailProvider;
   }
 }
 
@@ -38,10 +36,6 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   const db = createDb(config.DATABASE_URL);
   app.decorate('config', config);
   app.decorate('db', db);
-  app.decorate(
-    'email',
-    createEmailProvider({ log: app.log, from: config.EMAIL_FROM }),
-  );
 
   app.addHook('onClose', async () => {
     await db.$client.end();

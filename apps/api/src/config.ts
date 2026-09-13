@@ -22,10 +22,6 @@ const baseSchema = z.object({
 
   WEB_ORIGIN: z.string().url(),
 
-  // From-address used by the email provider (see src/email). The default
-  // console provider only logs it; a real provider will send from it.
-  EMAIL_FROM: z.string().default('noreply@example.com'),
-
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   STRIPE_PREMIUM_PRICE_ID: z.string().startsWith('price_'),

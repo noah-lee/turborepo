@@ -139,14 +139,12 @@ Build context must be the repo root.
 - **Auth** — Google OIDC + PKCE; access/refresh JWTs in HttpOnly cookies (`__Host-`/`__Secure-` prefixed in prod); global sign-out via a rotating `session_id`.
 - **Billing** — Stripe subscriptions: checkout, customer portal, and webhook sync with atomic idempotency. Single premium tier out of the box.
 - **Security** — `@fastify/helmet` + a coarse per-IP `@fastify/rate-limit` on the API (the Stripe webhook is exempt); security headers on the web shell (`nginx.conf`).
-- **Email seam** — `EmailProvider` interface in `apps/api/src/email`; defaults to a console (log-only) provider. Swap in Resend/Postmark/SES by implementing the interface.
-- **Storage seam** — `StorageProvider` interface + a Cloudflare R2 / S3 presigned-upload recipe in `apps/api/src/storage`. No SDK shipped until you need it.
 
 ### Extending
 
 - Add a route: create a plugin under `apps/api/src`, register it in `app.ts`.
 - Add a shared type/contract: add a Zod schema in `packages/shared/src/schemas.ts` and consume it on both sides.
-- Add uploads or real email: implement the interface in `src/storage` / `src/email` and decorate it onto the app (billing is a worked example of a decorated, opt-in subsystem).
+- Add email or file uploads: there's no seam for these yet — decorate a provider onto the app the way `billing/plugin.ts` decorates `stripe` (e.g. `app.decorate('email', ...)`), and wire in an SDK (Resend/Postmark/SES, or S3/R2) when you actually need one.
 
 ## Node 24 native TypeScript
 

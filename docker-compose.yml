@@ -30,7 +30,6 @@ services:
       REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET:?required}
       COOKIE_SECRET: ${COOKIE_SECRET:?required}
       WEB_ORIGIN: ${WEB_ORIGIN:?required}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@example.com}
       # Billing — all required to boot.
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?required}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:?required}

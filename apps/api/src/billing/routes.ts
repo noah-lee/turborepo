@@ -43,8 +43,8 @@ async function handleEvent(
   }
 
   // Dunning hook: to notify users on failed payments, branch on event.type
-  // here (e.g. 'invoice.payment_failed') and call app.email.send(...) after
-  // resolving the user's email from the customer id.
+  // here (e.g. 'invoice.payment_failed') and send an email after resolving
+  // the user's email from the customer id.
   const result = await syncSubscriptionForCustomer(db, app.stripe, customerId);
   if (result !== 'synced') {
     app.log.warn(
