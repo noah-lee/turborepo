@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button"
-import { useCheckoutBanner } from "@/features/billing/use-checkout-banner"
+import { useCheckoutToast } from "@/features/billing/use-checkout-toast"
 import type { QueryClient } from "@tanstack/react-query"
 import {
+  type ErrorComponentProps,
   Link,
   Outlet,
   createRootRouteWithContext,
+  useRouter,
 } from "@tanstack/react-router"
 
 export type RouterContext = {
@@ -14,23 +16,13 @@ export type RouterContext = {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   notFoundComponent: NotFound,
+  // Mostly the auth guard's `me` request failing (API down, offline).
+  errorComponent: RouteError,
 })
 
 function RootLayout() {
-  const banner = useCheckoutBanner()
-
-  return (
-    <>
-      <Outlet />
-      {banner && (
-        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
-          <div className="rounded-full border bg-popover px-4 py-2 text-sm text-popover-foreground shadow-lg">
-            {banner.message}
-          </div>
-        </div>
-      )}
-    </>
-  )
+  useCheckoutToast()
+  return <Outlet />
 }
 
 function NotFound() {
@@ -42,6 +34,29 @@ function NotFound() {
       </p>
       <Button asChild variant="outline">
         <Link to="/">Back home</Link>
+      </Button>
+    </div>
+  )
+}
+
+function RouteError({ reset }: ErrorComponentProps) {
+  const router = useRouter()
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+      <p className="font-heading text-2xl font-semibold">
+        Something went wrong
+      </p>
+      <p className="text-sm text-muted-foreground">
+        Couldn't reach the server. Check your connection.
+      </p>
+      <Button
+        variant="outline"
+        onClick={() => {
+          reset()
+          router.invalidate()
+        }}
+      >
+        Try again
       </Button>
     </div>
   )

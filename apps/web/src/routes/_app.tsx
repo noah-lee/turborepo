@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/layout/navbar"
+import { PageLayout } from "@/components/layout/page-layout"
 import { meQueryOptions } from "@/features/auth/api"
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
 
@@ -15,14 +15,9 @@ export const Route = createFileRoute("/_app")({
 })
 
 function AppLayout() {
-  const { me } = Route.useRouteContext()
-
   return (
-    <div className="min-h-svh">
-      <Navbar user={me} />
-      <main className="mx-auto max-w-5xl px-6 py-8">
-        <Outlet />
-      </main>
-    </div>
+    <PageLayout>
+      <Outlet />
+    </PageLayout>
   )
 }

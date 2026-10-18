@@ -23,6 +23,9 @@ const SUBSCRIPTION_SYNC_EVENTS = new Set<Stripe.Event.Type>([
   'invoice.payment_action_required',
 ]);
 
+// Any other status is a subscription the customer still manages through the portal.
+const ENDED_SUBSCRIPTION_STATUSES = new Set(['canceled', 'incomplete_expired']);
+
 async function handleEvent(
   app: FastifyInstance,
   db: Database | Transaction,
@@ -149,21 +152,42 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
     );
   });
 
-  app.post('/checkout', { preHandler: [app.authenticate] }, async (req) => {
-    const customerId = await getOrCreateCustomer(app, req.user.sub);
-    const session = await app.stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: 'subscription',
-      line_items: [{ price: app.config.STRIPE_PREMIUM_PRICE_ID, quantity: 1 }],
-      success_url: `${app.config.WEB_ORIGIN}/?checkout=success`,
-      cancel_url: `${app.config.WEB_ORIGIN}/?checkout=canceled`,
-      allow_promotion_codes: true,
-    });
-    if (!session.url) throw new Error('stripe checkout session missing url');
-    return { url: session.url };
-  });
+  app.post(
+    '/checkout',
+    { onRequest: [app.authenticate] },
+    async (req, reply) => {
+      const existing = await selectCustomerIdByUserId(app.db, req.user.sub);
+      if (existing) {
+        // Sync first: right after a checkout the webhook may not have landed yet, and a
+        // second checkout would start a second, separately billed subscription.
+        await syncSubscriptionForCustomer(app.db, app.stripe, existing);
+        const [sub] = await app.db
+          .select({ status: stripeSubscriptions.status })
+          .from(stripeSubscriptions)
+          .where(eq(stripeSubscriptions.userId, req.user.sub));
+        if (sub && !ENDED_SUBSCRIPTION_STATUSES.has(sub.status)) {
+          reply.code(409);
+          return { error: 'already_subscribed' };
+        }
+      }
+      const customerId =
+        existing ?? (await getOrCreateCustomer(app, req.user.sub));
+      const session = await app.stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'subscription',
+        line_items: [
+          { price: app.config.STRIPE_PREMIUM_PRICE_ID, quantity: 1 },
+        ],
+        success_url: `${app.config.APP_ORIGIN}/account?checkout=success`,
+        cancel_url: `${app.config.APP_ORIGIN}/account?checkout=canceled`,
+        allow_promotion_codes: true,
+      });
+      if (!session.url) throw new Error('stripe checkout session missing url');
+      return { url: session.url };
+    },
+  );
 
-  app.post('/sync', { preHandler: [app.authenticate] }, async (req) => {
+  app.post('/sync', { onRequest: [app.authenticate] }, async (req) => {
     const customerId = await selectCustomerIdByUserId(app.db, req.user.sub);
     if (customerId) {
       await syncSubscriptionForCustomer(app.db, app.stripe, customerId);
@@ -171,26 +195,22 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.post(
-    '/portal',
-    { preHandler: [app.authenticate] },
-    async (req, reply) => {
-      const customerId = await selectCustomerIdByUserId(app.db, req.user.sub);
-      if (!customerId) {
-        reply.code(404);
-        return { error: 'no_customer' };
-      }
-      const session = await app.stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: app.config.WEB_ORIGIN,
-      });
-      return { url: session.url };
-    },
-  );
+  app.post('/portal', { onRequest: [app.authenticate] }, async (req, reply) => {
+    const customerId = await selectCustomerIdByUserId(app.db, req.user.sub);
+    if (!customerId) {
+      reply.code(404);
+      return { error: 'no_customer' };
+    }
+    const session = await app.stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${app.config.APP_ORIGIN}/account`,
+    });
+    return { url: session.url };
+  });
 
   app.get(
     '/subscription',
-    { preHandler: [app.authenticate] },
+    { onRequest: [app.authenticate] },
     async (req, reply): Promise<SubscriptionResponse | { error: string }> => {
       const [row] = await app.db
         .select({

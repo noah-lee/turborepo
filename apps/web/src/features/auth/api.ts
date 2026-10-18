@@ -35,18 +35,30 @@ export function signIn() {
   window.location.href = "/api/auth/google/start"
 }
 
-export function useSignOut() {
+// Set `me` to null rather than invalidating it: the route guards read it with
+// ensureQueryData, which happily returns a stale cached user, and nothing
+// subscribes to it, so an invalidation never refetches. Clearing first drops
+// the old user's logs and targets.
+function useSignedOut() {
   const qc = useQueryClient()
+  return () => {
+    qc.clear()
+    qc.setQueryData(ME_QUERY_KEY, null)
+  }
+}
+
+export function useSignOut() {
+  const onSuccess = useSignedOut()
   return useMutation({
     mutationFn: () => api.post("/auth/logout"),
-    onSettled: () => qc.invalidateQueries({ queryKey: ME_QUERY_KEY }),
+    onSuccess,
   })
 }
 
 export function useSignOutEverywhere() {
-  const qc = useQueryClient()
+  const onSuccess = useSignedOut()
   return useMutation({
     mutationFn: () => api.post("/auth/logout-all"),
-    onSettled: () => qc.invalidateQueries({ queryKey: ME_QUERY_KEY }),
+    onSuccess,
   })
 }

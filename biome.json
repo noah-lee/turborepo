@@ -7,13 +7,38 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["dist", "build", ".turbo"]
+    "ignore": ["dist", "build", ".turbo", "apps/web/src/routeTree.gen.ts"]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2
   },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "overrides": [
+    {
+      "include": ["apps/web/**"],
+      "javascript": {
+        "formatter": {
+          "quoteStyle": "double",
+          "semicolons": "asNeeded"
+        }
+      }
+    },
+    {
+      "include": ["apps/web/src/components/ui/**"],
+      "linter": {
+        "rules": {
+          "security": { "noDangerouslySetInnerHtml": "off" },
+          "suspicious": { "noArrayIndexKey": "off" }
+        }
+      }
+    }
+  ],
   "organizeImports": {
     "enabled": true
   },

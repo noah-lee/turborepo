@@ -9,18 +9,17 @@ const baseSchema = z.object({
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
-  CORS_ORIGIN: z.string().default('*'),
   DATABASE_URL: z.string().url(),
 
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
-  GOOGLE_REDIRECT_URI: z.string().url(),
 
-  ACCESS_TOKEN_SECRET: z.string().min(1),
-  REFRESH_TOKEN_SECRET: z.string().min(1),
-  COOKIE_SECRET: z.string().min(1),
+  ACCESS_TOKEN_SECRET: z.string().min(32),
+  REFRESH_TOKEN_SECRET: z.string().min(32),
+  COOKIE_SECRET: z.string().min(32),
 
-  WEB_ORIGIN: z.string().url(),
+  // The one public origin: serves the SPA and, under /api, the api. In dev it's Vite's.
+  APP_ORIGIN: z.string().url().default('http://localhost:5173'),
 
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
@@ -28,25 +27,23 @@ const baseSchema = z.object({
 });
 
 const envSchema = baseSchema.superRefine((env, ctx) => {
-  if (env.NODE_ENV !== 'production') return;
-
-  for (const key of ['GOOGLE_REDIRECT_URI', 'WEB_ORIGIN'] as const) {
-    if (!env[key].startsWith('https://')) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: [key],
-        message: 'Must use https in production',
-      });
-    }
-  }
-  // A wildcard origin combined with credentialed CORS reflects any site's
-  // origin back with Access-Control-Allow-Credentials. Force an explicit
-  // allowlist in production.
-  if (env.CORS_ORIGIN === '*') {
+  // Both tokens carry `sub`, so with one shared secret a refresh token would pass as an
+  // access token.
+  if (env.ACCESS_TOKEN_SECRET === env.REFRESH_TOKEN_SECRET) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ['CORS_ORIGIN'],
-      message: 'Must be an explicit origin (not "*") in production',
+      path: ['REFRESH_TOKEN_SECRET'],
+      message: 'Must differ from ACCESS_TOKEN_SECRET',
+    });
+  }
+
+  if (env.NODE_ENV !== 'production') return;
+
+  if (!env.APP_ORIGIN.startsWith('https://')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['APP_ORIGIN'],
+      message: 'Must use https in production',
     });
   }
   if (!env.STRIPE_SECRET_KEY.startsWith('sk_live_')) {

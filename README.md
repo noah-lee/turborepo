@@ -29,19 +29,21 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Web runs at http://localhost:5173, API at http://localhost:3000. Vite proxies `/api/*` → API in dev.
+Web runs at http://localhost:5173, API at http://localhost:3000. Vite proxies `/api/*` to the API in dev, unchanged: the API's routes live under `/api` in every environment. Set `PORT` in `.env` to move the API; the proxy follows it.
 
 ### Required to boot
 
 The API validates its env at startup and exits if anything is missing. A fresh clone needs, at minimum:
 
 - `DATABASE_URL`
-- Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
+- Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - Token/cookie secrets: `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `COOKIE_SECRET` (generate with `openssl rand -base64 48`)
-- `WEB_ORIGIN`
 - Stripe billing: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PREMIUM_PRICE_ID` — `.env.example` documents how to obtain each, including running `stripe listen` to forward webhooks in local dev.
+- Production only: `APP_ORIGIN=https://your.domain` (defaults to `http://localhost:5173` in dev)
 
-Billing is included by default. A project that doesn't need it can delete `apps/api/src/billing`, the billing UI in `apps/web`, the `stripe_*` tables in `packages/db/src/schema.ts`, and the `STRIPE_*` env.
+The Google redirect URI is derived as `<APP_ORIGIN>/api/auth/google/callback`; register that exact URL (for both dev and production) on the OAuth client. Optional: `PORT` (3000), `LOG_LEVEL` (info).
+
+Billing is included by default. A project that doesn't need it can delete `apps/api/src/billing` (and its registration in `app.ts`), the billing UI in `apps/web`, the `stripe_*` tables in `packages/db/src/schema.ts`, the `STRIPE_*` env in `config.ts` and `.env.example`, and `stripe` from `apps/api/package.json`.
 
 ## Scripts
 
@@ -76,17 +78,17 @@ pnpm --filter @repo/web exec shadcn add <component>
 Routing is file-based ([TanStack Router](https://tanstack.com/router)). Drop a file under `apps/web/src/routes` and the route tree (`routeTree.gen.ts`, committed) regenerates on the next `pnpm dev`/`build`:
 
 - `routes/about.tsx` → `/about` — public
-- `routes/_app/settings.tsx` → `/settings` — inside the authenticated shell (navbar + auth guard in `routes/_app.tsx`)
+- `routes/_app/settings.tsx` → `/settings` — behind the auth guard in `routes/_app.tsx`
 
-Each file exports a `Route` via `createFileRoute`. Public pages sit at the top level; anything requiring a signed-in user goes under `_app/`. The landing page (`routes/index.tsx`) is public; `dashboard` and `profile` are protected examples.
+Each file exports a `Route` via `createFileRoute`. Public pages sit at the top level; anything requiring a signed-in user goes under `_app/`. Wrap a page in `PageLayout` (header + footer) unless it's under `_app/`, which already does. Out of the box: `/` (landing), `/privacy`, `/terms` (public) and `/account` (signed in). Rename the product in `src/lib/site.ts` and the `<title>` in `index.html`.
 
 ## VPS deployment
 
-The repo includes a `docker-compose.yml` that builds the api + web images and wires them to share Postgres from the [postgres](../postgres) companion repo.
+The repo's `Dockerfile` builds one image: the Fastify api, which also serves the built SPA (everything outside `/api`, with a fallback to `index.html` for client-side routes). `docker-compose.yml` runs it as the single `app` service, on the external `shared-pg` network (created by the [postgres](../postgres) companion repo) so it reaches `postgres:5432`.
 
-**Network topology:**
-- `shared-pg` — external network created by the postgres repo. The api joins to reach `postgres:5432`.
-- `app` — internal bridge created by this compose. Both api and web join so web's nginx resolves `api:3000`.
+```
+Internet :443 → host nginx (TLS) → 127.0.0.1:$PORT → app container (/api/* + SPA) → postgres:5432
+```
 
 ```bash
 # 1. Bring up Postgres on the VPS (if not already running)
@@ -96,39 +98,37 @@ docker compose up -d
 bash ./scripts/add-app.sh turborepo
 # Note the printed DATABASE_URL_INTERNAL — it uses `postgres:5432` Docker DNS
 
-# 2. Deploy the turborepo
+# 2. Deploy
 cd ../turborepo
-cp .env.example .env       # paste DATABASE_URL_INTERNAL as DATABASE_URL
-                           # set CORS_ORIGIN + WEB_ORIGIN to your public domain,
-                           # and the Google OAuth + token secrets + STRIPE_* vars
-                           # (all required to boot).
-docker compose build
-
-# 3. Run migrations as a one-shot before bringing up the app
-docker compose run --rm api node node_modules/@repo/db/src/migrate.ts
-
-# 4. Start the app
-docker compose up -d
+cp .env.example .env       # paste DATABASE_URL_INTERNAL as DATABASE_URL, set
+                           # APP_ORIGIN to your https domain, the Google OAuth client,
+                           # token secrets and STRIPE_* vars (all required to boot).
+bash deploy.sh             # build, validate env + migrate, start, prune old images
 ```
 
-Web is published on `:80` of the host by default (`WEB_PORT` to override). Put a reverse proxy + TLS terminator (Caddy, Traefik, nginx) in front for HTTPS.
+`deploy.sh` is also the redeploy command: pull, then run it again. Its migrate step validates the whole env, then migrates with the new image while the old container keeps serving, so a bad `.env` or a failed migration stops the deploy before anything is swapped.
 
-**Multiple apps on the same VPS:** each app has its own `app` bridge network (auto-namespaced per compose project) and shares the `shared-pg` network. Apps don't see each other's services.
+The container is published on `127.0.0.1:$PORT` (default 3000), reachable only from the VPS itself (Docker-published ports bypass UFW, so binding all interfaces would expose plain http). `PORT` is the one port setting: the api listens on it, compose publishes it, and the healthcheck probes it. Put a TLS-terminating proxy on the host in front of it and send **every** request there, `/api/` included. For a host nginx:
 
-## Building Docker images standalone
-
-For one-off builds (e.g. registry push), without compose:
-
-```bash
-docker build -f apps/api/Dockerfile -t app-api .
-docker build -f apps/web/Dockerfile -t app-web .
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;   # no trailing slash: pass the path through unchanged
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;   # the api rate-limits per client from this
+}
 ```
 
-Build context must be the repo root.
+Register the Stripe webhook endpoint as `https://your.domain/api/billing/webhook`.
+
+**Multiple apps on the same VPS:** give each its own `PORT` in its `.env`. They all share the `shared-pg` network, and each app reaches only its own database.
+
+## Building the Docker image standalone
+
+For one-off builds (e.g. registry push), without compose: `docker build -t turborepo .` from the repo root.
 
 ## Architecture
 
-- `apps/api` — Fastify API (Node 24, native TS via type-stripping in dev, `tsc` build for prod)
+- `apps/api` — Fastify API (Node 24, native TS via type-stripping in dev, tsdown bundle for prod); in production it also serves the built SPA
 - `apps/web` — Vite + React + Tailwind v4 + shadcn/ui + TanStack Router (file-based) + TanStack Query
 - `packages/db` — Drizzle schema + client factory + migration runner
 - `packages/shared` — Zod schemas shared between web and api
@@ -138,11 +138,11 @@ Build context must be the repo root.
 
 - **Auth** — Google OIDC + PKCE; access/refresh JWTs in HttpOnly cookies (`__Host-`/`__Secure-` prefixed in prod); global sign-out via a rotating `session_id`.
 - **Billing** — Stripe subscriptions: checkout, customer portal, and webhook sync with atomic idempotency. Single premium tier out of the box.
-- **Security** — `@fastify/helmet` + a coarse per-IP `@fastify/rate-limit` on the API (the Stripe webhook is exempt); security headers on the web shell (`nginx.conf`).
+- **Security** — `@fastify/helmet` (CSP and other security headers on every response, the SPA included) + a coarse per-IP `@fastify/rate-limit` on `/api` (the Stripe webhook is exempt).
 
 ### Extending
 
-- Add a route: create a plugin under `apps/api/src`, register it in `app.ts`.
+- Add a route: create a plugin under `apps/api/src`, register it inside the `/api` scope in `app.ts`. Put Zod schemas in the route options (`fastify-type-provider-zod`) and guard with `{ onRequest: [app.authenticate] }`.
 - Add a shared type/contract: add a Zod schema in `packages/shared/src/schemas.ts` and consume it on both sides.
 - Add email or file uploads: there's no seam for these yet — decorate a provider onto the app the way `billing/plugin.ts` decorates `stripe` (e.g. `app.decorate('email', ...)`), and wire in an SDK (Resend/Postmark/SES, or S3/R2) when you actually need one.
 

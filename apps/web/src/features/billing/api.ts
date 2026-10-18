@@ -22,8 +22,15 @@ async function postCheckout(url: string): Promise<CheckoutResponse> {
 }
 
 export function useStartSubscription() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: () => postCheckout("/billing/checkout"),
+    // 409 already_subscribed: the server just synced from Stripe, so refresh what's shown.
+    onError: (err) => {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        invalidateBilling(qc)
+      }
+    },
   })
 }
 

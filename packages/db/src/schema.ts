@@ -1,5 +1,8 @@
 import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
+// Every timestamp is precision 3 (milliseconds), matching a JS Date, so values
+// round-trip exactly (e.g. for a timestamp-based pagination cursor).
+
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: text('email').notNull().unique(),
@@ -7,10 +10,10 @@ export const users = pgTable('users', {
   name: text('name'),
   picture: text('picture'),
   sessionId: uuid('session_id').defaultRandom().notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
+  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
     .defaultNow()
     .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
+  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
     .defaultNow()
     .notNull()
     .$onUpdate(() => new Date()),
@@ -21,7 +24,7 @@ export const stripeCustomers = pgTable('stripe_customers', {
     .primaryKey()
     .references(() => users.id, { onDelete: 'cascade' }),
   stripeCustomerId: text('stripe_customer_id').notNull().unique(),
-  createdAt: timestamp('created_at', { withTimezone: true })
+  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
     .defaultNow()
     .notNull(),
 });
@@ -34,9 +37,10 @@ export const stripeSubscriptions = pgTable('stripe_subscriptions', {
   status: text('status').notNull(),
   currentPeriodEnd: timestamp('current_period_end', {
     withTimezone: true,
+    precision: 3,
   }).notNull(),
   cancelAtPeriodEnd: boolean('cancel_at_period_end').notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
+  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
     .defaultNow()
     .notNull()
     .$onUpdate(() => new Date()),
@@ -44,7 +48,7 @@ export const stripeSubscriptions = pgTable('stripe_subscriptions', {
 
 export const stripeEvents = pgTable('stripe_events', {
   stripeEventId: text('stripe_event_id').primaryKey(),
-  processedAt: timestamp('processed_at', { withTimezone: true })
+  processedAt: timestamp('processed_at', { withTimezone: true, precision: 3 })
     .defaultNow()
     .notNull(),
 });

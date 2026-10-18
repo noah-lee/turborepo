@@ -14,9 +14,7 @@ declare module '@fastify/jwt' {
 export const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
 export const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
-// Browser-facing path under which the api is reverse-proxied (nginx: /api → api:3000).
-// Cookies are stored and sent by the browser based on the path it sees, not the path
-// the upstream api sees — so this must match the browser URL, not the api route.
+// Where authRoutes is mounted (the `/api` scope in app.ts + `/auth`). Move it with them.
 const REFRESH_COOKIE_PATH = '/api/auth';
 
 export type AccessTokenPayload = { sub: string };
@@ -78,10 +76,15 @@ export function setAuthCookies(
   );
 }
 
+// Browsers drop a Set-Cookie for a __Host-/__Secure- name that lacks Secure,
+// deletions included, so clear with the same attributes the cookie was set with.
 export function clearAuthCookies(reply: FastifyReply): void {
   const { isProd } = reply.server.config;
-  reply.clearCookie(accessCookieName(isProd), { path: '/' });
-  reply.clearCookie(refreshCookieName(isProd), { path: REFRESH_COOKIE_PATH });
+  reply.clearCookie(accessCookieName(isProd), cookieOptions('access', isProd));
+  reply.clearCookie(
+    refreshCookieName(isProd),
+    cookieOptions('refresh', isProd),
+  );
 }
 
 // Terminal auth rejection: the session is dead (no/invalid refresh token,

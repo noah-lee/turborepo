@@ -12,7 +12,7 @@ import {
 } from './tokens.ts';
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/me', { preHandler: [app.authenticate] }, async (req, reply) => {
+  app.get('/me', { onRequest: [app.authenticate] }, async (req, reply) => {
     const [row] = await app.db
       .select({
         id: users.id,
@@ -61,7 +61,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     '/logout',
-    { preHandler: [app.authenticate] },
+    { onRequest: [app.authenticate] },
     async (_req, reply) => {
       clearAuthCookies(reply);
       return { ok: true };
@@ -70,7 +70,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
   app.post(
     '/logout-all',
-    { preHandler: [app.authenticate] },
+    { onRequest: [app.authenticate] },
     async (req, reply) => {
       await app.db
         .update(users)
