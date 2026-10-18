@@ -1,6 +1,6 @@
 import fp from 'fastify-plugin';
 import { billingRoutes } from './routes.ts';
-import { type StripeClient, createStripeClient } from './stripe.ts';
+import { createStripeClient, type StripeClient } from './stripe.ts';
 
 declare module 'fastify' {
   interface FastifyInstance {

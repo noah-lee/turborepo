@@ -1,3 +1,7 @@
+import { createFileRoute, Link } from "@tanstack/react-router"
+import { CircleAlert, CreditCard, KeyRound, ShieldCheck } from "lucide-react"
+import { useEffect, useState } from "react"
+import { z } from "zod"
 import { PageLayout } from "@/components/layout/page-layout"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -12,10 +16,6 @@ import {
 import { useMe } from "@/features/auth/api"
 import { SignInButton } from "@/features/auth/sign-in-button"
 import { site } from "@/lib/site"
-import { Link, createFileRoute } from "@tanstack/react-router"
-import { CircleAlert, CreditCard, KeyRound, ShieldCheck } from "lucide-react"
-import { useEffect, useState } from "react"
-import { z } from "zod"
 
 export const Route = createFileRoute("/")({
   // The API's OAuth callback sends any failure back here as `?error=oauth`.

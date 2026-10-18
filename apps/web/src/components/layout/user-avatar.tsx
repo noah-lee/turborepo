@@ -1,5 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { MeResponse } from "@repo/shared/schemas"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 function initials(user: MeResponse) {
   const words = user.name?.trim().split(/\s+/) ?? []

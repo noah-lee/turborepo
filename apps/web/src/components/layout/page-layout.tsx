@@ -1,7 +1,7 @@
+import type { ReactNode } from "react"
 import { SiteFooter } from "@/components/layout/site-footer"
 import { SiteHeader } from "@/components/layout/site-header"
 import { cn } from "@/lib/utils"
-import type { ReactNode } from "react"
 
 // Header + footer around a page. Phone first: full-width with a 1rem gutter (clear of the
 // notch in landscape), widening to `max-w-2xl` with more padding from `sm` up.

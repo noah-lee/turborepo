@@ -1,4 +1,3 @@
-import { api, fetchJson } from "@/lib/api"
 import { type MeResponse, meResponseSchema } from "@repo/shared/schemas"
 import {
   queryOptions,
@@ -7,6 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query"
 import axios from "axios"
+import { api, fetchJson } from "@/lib/api"
 
 export const ME_QUERY_KEY = ["auth", "me"] as const
 

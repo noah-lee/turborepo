@@ -1,8 +1,8 @@
+import { type ComponentProps, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { signIn } from "@/features/auth/api"
 import { cn } from "@/lib/utils"
-import { type ComponentProps, useEffect, useState } from "react"
 
 export function SignInButton({
   onStart,

@@ -1,13 +1,13 @@
-import { Button } from "@/components/ui/button"
-import { useCheckoutToast } from "@/features/billing/use-checkout-toast"
 import type { QueryClient } from "@tanstack/react-query"
 import {
+  createRootRouteWithContext,
   type ErrorComponentProps,
   Link,
   Outlet,
-  createRootRouteWithContext,
   useRouter,
 } from "@tanstack/react-router"
+import { Button } from "@/components/ui/button"
+import { useCheckoutToast } from "@/features/billing/use-checkout-toast"
 
 export type RouterContext = {
   queryClient: QueryClient

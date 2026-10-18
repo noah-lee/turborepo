@@ -1,13 +1,13 @@
-import { ME_QUERY_KEY } from "@/features/auth/api"
-import { api, fetchJson } from "@/lib/api"
 import {
   type CheckoutResponse,
-  type SubscriptionResponse,
   checkoutResponseSchema,
+  type SubscriptionResponse,
   subscriptionResponseSchema,
 } from "@repo/shared/schemas"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import axios from "axios"
+import { ME_QUERY_KEY } from "@/features/auth/api"
+import { api, fetchJson } from "@/lib/api"
 
 const SUBSCRIPTION_QUERY_KEY = ["billing", "subscription"] as const
 

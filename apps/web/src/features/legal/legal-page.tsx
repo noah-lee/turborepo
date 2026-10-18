@@ -1,6 +1,6 @@
+import type { ReactNode } from "react"
 import { PageLayout } from "@/components/layout/page-layout"
 import { site } from "@/lib/site"
-import type { ReactNode } from "react"
 
 export function LegalPage({
   title,

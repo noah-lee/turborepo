@@ -1,9 +1,9 @@
+import { Link } from "@tanstack/react-router"
 import { ModeToggle } from "@/components/layout/mode-toggle"
 import { UserAvatar } from "@/components/layout/user-avatar"
 import { useMe } from "@/features/auth/api"
 import { SignInButton } from "@/features/auth/sign-in-button"
 import { site } from "@/lib/site"
-import { Link } from "@tanstack/react-router"
 
 const focusRing =
   "rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/30"

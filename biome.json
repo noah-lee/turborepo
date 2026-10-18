@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,13 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": ["dist", "build", ".turbo", "apps/web/src/routeTree.gen.ts"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/build",
+      "!**/.turbo",
+      "!**/apps/web/src/routeTree.gen.ts"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -21,7 +27,7 @@
   },
   "overrides": [
     {
-      "include": ["apps/web/**"],
+      "includes": ["**/apps/web/**"],
       "javascript": {
         "formatter": {
           "quoteStyle": "double",
@@ -30,22 +36,39 @@
       }
     },
     {
-      "include": ["apps/web/src/components/ui/**"],
+      "includes": ["**/apps/web/src/components/ui/**"],
       "linter": {
         "rules": {
-          "security": { "noDangerouslySetInnerHtml": "off" },
-          "suspicious": { "noArrayIndexKey": "off" }
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          },
+          "a11y": {
+            "useSemanticElements": "off",
+            "useKeyWithClickEvents": "off"
+          }
         }
       }
     }
   ],
-  "organizeImports": {
-    "enabled": true
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "preset": "recommended"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
     }
   }
 }

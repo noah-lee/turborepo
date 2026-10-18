@@ -1,3 +1,4 @@
+import { Monitor, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -6,7 +7,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/providers/theme-provider"
-import { Monitor, Moon, Sun } from "lucide-react"
 
 /**
  * Theme switcher. Complements the existing `d`-to-toggle keyboard shortcut with

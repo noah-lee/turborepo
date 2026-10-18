@@ -4,7 +4,7 @@ import compress from '@fastify/compress';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
-import { type Database, createDb } from '@repo/db';
+import { createDb, type Database } from '@repo/db';
 import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import {
   hasZodFastifySchemaValidationErrors,

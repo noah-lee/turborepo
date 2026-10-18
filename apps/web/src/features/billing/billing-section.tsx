@@ -1,3 +1,6 @@
+import type { MeResponse } from "@repo/shared/schemas"
+import axios from "axios"
+import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -7,9 +10,6 @@ import {
   useStartSubscription,
   useSubscription,
 } from "@/features/billing/api"
-import type { MeResponse } from "@repo/shared/schemas"
-import axios from "axios"
-import { toast } from "sonner"
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, {

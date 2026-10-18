@@ -1,6 +1,6 @@
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 import { PageLayout } from "@/components/layout/page-layout"
 import { meQueryOptions } from "@/features/auth/api"
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/_app")({
   // Auth guard for every route nested under this layout. Resolves the shared

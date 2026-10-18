@@ -3,7 +3,7 @@ packages:
   - "packages/*"
 
 catalog:
-  "@biomejs/biome": ^1.9.4
+  "@biomejs/biome": ^2.5.15
   turbo: ^2.3.0
   typescript: ~5.9.3
   zod: ^4.6.7

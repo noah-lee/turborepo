@@ -1,3 +1,7 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { LogOut } from "lucide-react"
+import { useRef, useState } from "react"
+import { toast } from "sonner"
 import { UserAvatar } from "@/components/layout/user-avatar"
 import {
   AlertDialog,
@@ -16,10 +20,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useMe, useSignOut, useSignOutEverywhere } from "@/features/auth/api"
 import { BillingSection } from "@/features/billing/billing-section"
 import { useTheme } from "@/providers/theme-provider"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { LogOut } from "lucide-react"
-import { useRef, useState } from "react"
-import { toast } from "sonner"
 
 export const Route = createFileRoute("/_app/account")({
   component: Account,

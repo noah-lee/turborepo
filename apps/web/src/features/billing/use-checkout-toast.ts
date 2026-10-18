@@ -1,6 +1,6 @@
-import { useSyncBilling } from "@/features/billing/api"
 import { useEffect, useRef } from "react"
 import { toast } from "sonner"
+import { useSyncBilling } from "@/features/billing/api"
 
 /**
  * Stripe redirects back to `/account?checkout=success|canceled` (billing/routes.ts). Mounted at
@@ -13,7 +13,6 @@ export function useCheckoutToast() {
   const handled = useRef(false)
 
   // sync.mutate is stable; this runs once per page load.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional — see above
   useEffect(() => {
     if (handled.current) return
     const url = new URL(window.location.href)

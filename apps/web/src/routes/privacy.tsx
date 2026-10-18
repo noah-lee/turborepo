@@ -1,10 +1,10 @@
+import { createFileRoute } from "@tanstack/react-router"
 import {
   ContactLink,
   LegalPage,
   LegalSection,
 } from "@/features/legal/legal-page"
 import { site } from "@/lib/site"
-import { createFileRoute } from "@tanstack/react-router"
 
 // Public: Google's OAuth brand verification reads this page. A starting template that matches
 // what the scaffold stores and sends (the users and stripe_* tables, the OAuth scopes, Stripe).

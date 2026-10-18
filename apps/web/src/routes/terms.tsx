@@ -1,10 +1,10 @@
+import { createFileRoute, Link } from "@tanstack/react-router"
 import {
   ContactLink,
   LegalPage,
   LegalSection,
 } from "@/features/legal/legal-page"
 import { site } from "@/lib/site"
-import { Link, createFileRoute } from "@tanstack/react-router"
 
 // Public: Google's OAuth brand verification reads this page. A starting template; keep it in
 // step with the product, and bump site.legalUpdated when it changes.
