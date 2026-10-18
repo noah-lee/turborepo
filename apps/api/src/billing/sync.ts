@@ -20,10 +20,17 @@ export async function selectUserIdByCustomerId(
 }
 
 function mapStripeSubscription(sub: Stripe.Subscription) {
+  // The billing period lives on each item, not the subscription (API 2025-03-31.basil+).
+  const periodEnd = Math.max(
+    ...sub.items.data.map((item) => item.current_period_end),
+  );
+  if (!Number.isFinite(periodEnd)) {
+    throw new Error(`stripe subscription ${sub.id} has no items`);
+  }
   return {
     stripeSubscriptionId: sub.id,
     status: sub.status,
-    currentPeriodEnd: new Date(sub.current_period_end * 1000),
+    currentPeriodEnd: new Date(periodEnd * 1000),
     cancelAtPeriodEnd: sub.cancel_at_period_end,
   };
 }

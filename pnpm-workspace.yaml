@@ -21,7 +21,7 @@ catalog:
   "@fastify/static": ^10.1.0
   fastify-plugin: ^5.0.0
   fastify-type-provider-zod: ^7.0.0
-  stripe: ^17.5.0
+  stripe: ^23.0.0
   vitest: ^2.1.0
   react: ^19.3.1
   react-dom: ^19.3.1
