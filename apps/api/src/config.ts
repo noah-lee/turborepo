@@ -19,7 +19,16 @@ const baseSchema = z.object({
   COOKIE_SECRET: z.string().min(32),
 
   // The one public origin: serves the SPA and, under /api, the api. In dev it's Vite's.
-  APP_ORIGIN: z.url().default('http://localhost:5173'),
+  // Normalized to a bare origin: callers append paths to it (`${APP_ORIGIN}/account`), so a
+  // trailing slash would produce `//account`.
+  APP_ORIGIN: z
+    .url()
+    .refine(
+      (url) => !URL.canParse(url) || new URL(url).pathname === '/',
+      'Must be an origin, without a path',
+    )
+    .transform((url) => new URL(url).origin)
+    .default('http://localhost:5173'),
 
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
