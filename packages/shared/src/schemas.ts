@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const meResponseSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
   name: z.string().nullable(),
-  picture: z.string().url().nullable(),
+  picture: z.url().nullable(),
   isPremium: z.boolean(),
 });
 
@@ -25,14 +25,14 @@ export type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
 
 export const subscriptionResponseSchema = z.object({
   status: subscriptionStatusSchema,
-  currentPeriodEnd: z.string().datetime(),
+  currentPeriodEnd: z.iso.datetime(),
   cancelAtPeriodEnd: z.boolean(),
 });
 
 export type SubscriptionResponse = z.infer<typeof subscriptionResponseSchema>;
 
 export const checkoutResponseSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
 });
 
 export type CheckoutResponse = z.infer<typeof checkoutResponseSchema>;

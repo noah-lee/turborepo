@@ -9,7 +9,7 @@ const baseSchema = z.object({
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace'])
     .default('info'),
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.url(),
 
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
@@ -19,7 +19,7 @@ const baseSchema = z.object({
   COOKIE_SECRET: z.string().min(32),
 
   // The one public origin: serves the SPA and, under /api, the api. In dev it's Vite's.
-  APP_ORIGIN: z.string().url().default('http://localhost:5173'),
+  APP_ORIGIN: z.url().default('http://localhost:5173'),
 
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
@@ -31,7 +31,7 @@ const envSchema = baseSchema.superRefine((env, ctx) => {
   // access token.
   if (env.ACCESS_TOKEN_SECRET === env.REFRESH_TOKEN_SECRET) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['REFRESH_TOKEN_SECRET'],
       message: 'Must differ from ACCESS_TOKEN_SECRET',
     });
@@ -41,14 +41,14 @@ const envSchema = baseSchema.superRefine((env, ctx) => {
 
   if (!env.APP_ORIGIN.startsWith('https://')) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['APP_ORIGIN'],
       message: 'Must use https in production',
     });
   }
   if (!env.STRIPE_SECRET_KEY.startsWith('sk_live_')) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['STRIPE_SECRET_KEY'],
       message: 'Must be a live key (sk_live_) in production',
     });
@@ -62,7 +62,7 @@ export function loadConfig(): Config {
   if (!result.success) {
     console.error(
       'Invalid environment variables:',
-      result.error.flatten().fieldErrors,
+      z.flattenError(result.error).fieldErrors,
     );
     process.exit(1);
   }

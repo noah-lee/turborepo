@@ -60,10 +60,10 @@ const googleTokenResponseSchema = z.object({
 
 const idTokenPayloadSchema = z.object({
   sub: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   email_verified: z.boolean(),
   name: z.string().optional(),
-  picture: z.string().url().optional(),
+  picture: z.url().optional(),
 });
 
 export const googleRoutes: FastifyPluginAsync = async (app) => {
