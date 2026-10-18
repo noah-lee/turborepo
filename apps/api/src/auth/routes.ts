@@ -59,14 +59,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     return { ok: true };
   });
 
-  app.post(
-    '/logout',
-    { onRequest: [app.authenticate] },
-    async (_req, reply) => {
-      clearAuthCookies(reply);
-      return { ok: true };
-    },
-  );
+  // Unguarded: with an expired session, a guarded logout would 401 and leave the
+  // refresh cookie behind. Clearing cookies needs no identity.
+  app.post('/logout', async (_req, reply) => {
+    clearAuthCookies(reply);
+    return { ok: true };
+  });
 
   app.post(
     '/logout-all',
