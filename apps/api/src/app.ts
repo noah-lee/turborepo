@@ -105,18 +105,18 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
       // Coarse per-IP limit across the api. Scoped here so loading the SPA's assets
       // doesn't spend it. The Stripe webhook opts out (billing/routes.ts) so provider
       // retries are never throttled.
-      await api.register(rateLimit, { max: 100, timeWindow: '1 minute' });
-      // rate-limit appends its hook after the route's own onRequest hooks, so a route
-      // guarded by authenticate would 401 without counting the request. Move it first.
-      api.addHook('onRoute', (route) => {
-        if (
-          route.config?.rateLimit === false ||
-          !Array.isArray(route.onRequest)
-        ) {
-          return;
-        }
-        const limiter = route.onRequest.pop();
-        if (limiter) route.onRequest.unshift(limiter);
+      // A scope-wide hook, not the plugin's per-route one (`global: false`): scope hooks
+      // run before a route's own onRequest hooks, so a request is counted before
+      // authenticate can reject it.
+      await api.register(rateLimit, {
+        global: false,
+        max: 100,
+        timeWindow: '1 minute',
+      });
+      const limit = api.rateLimit();
+      api.addHook('onRequest', async function (req, reply) {
+        if (req.routeOptions.config.rateLimit === false) return;
+        await limit.call(this, req, reply);
       });
       await api.register(authRoutesPlugin);
       await api.register(billingRoutes, { prefix: '/billing' });
