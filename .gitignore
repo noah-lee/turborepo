@@ -22,3 +22,7 @@ Thumbs.db
 
 .vscode/
 .idea/
+# Scratch output of packages/db/scripts/check-migrations.ts
+.migrations-check/
+# The SPA build the image places beside the api's dist/ (app.test.ts creates one briefly)
+apps/api/public/

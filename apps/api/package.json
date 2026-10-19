@@ -11,7 +11,8 @@
     "dev": "node --watch --env-file-if-exists=../../.env src/server.ts",
     "build": "tsdown",
     "start": "node --enable-source-maps dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fastify/compress": "catalog:",
@@ -34,6 +35,7 @@
     "@repo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
