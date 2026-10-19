@@ -57,12 +57,29 @@ Billing is included by default. A project that doesn't need it can delete `apps/
 | `pnpm db:generate` | Generate a new SQL migration from `packages/db/src/schema.ts` |
 | `pnpm db:migrate` | Apply pending migrations to `DATABASE_URL` |
 | `pnpm db:studio` | Open Drizzle Studio (DB browser) |
+| `pnpm db:check` | Fail if `schema.ts` has changes no committed migration covers |
+| `pnpm verify` | Lint, migration check, typecheck, unit + integration tests, build (stops at the first failure) |
+| `pnpm verify:full` | `verify`, then the e2e suite |
+| `pnpm test` | Vitest in every package |
+| `pnpm test:e2e` | Playwright (mobile + desktop Chromium) |
+| `pnpm e2e:shots <route>` | Screenshot routes into `e2e/screenshots/` |
+
+## Testing
+
+Tests run against a real Postgres database whose name must end in `_test` (they drop and truncate everything in it). With the postgres companion repo:
+
+```bash
+docker exec -i postgres psql -U postgres -c "CREATE DATABASE turborepo_test OWNER turborepo;"
+# then in .env: TEST_DATABASE_URL = your DATABASE_URL with the database name turborepo_test
+```
+
+`pnpm verify` is the "is this repo healthy?" check; `pnpm verify:full` adds the browser tests (the first run downloads Chromium). Every test run rebuilds the test database from the committed migrations. Playwright starts its own api (port 3100) and web preview (port 5174), so it can run beside `pnpm dev`.
 
 ## Adding a database migration
 
 1. Edit `packages/db/src/schema.ts`
 2. `pnpm db:generate` — drizzle-kit writes a new SQL file under `packages/db/migrations/`
-3. Review the SQL, commit it
+3. Review the SQL, commit it (`pnpm db:check`, part of `pnpm verify`, fails until a migration covers the schema)
 4. `pnpm db:migrate` — applies pending migrations to `DATABASE_URL`
 
 In production, run migrations as a one-shot job before rolling out a new api image (see VPS deployment below).
@@ -133,6 +150,7 @@ For one-off builds (e.g. registry push), without compose: `docker build -t turbo
 - `packages/db` — Drizzle schema + client factory + migration runner
 - `packages/shared` — Zod schemas shared between web and api
 - `packages/tsconfig` — shared TypeScript presets (`base`, `react`)
+- `e2e` — Playwright browser tests (dev only; never installed in the Docker image)
 
 ## What's included
 
