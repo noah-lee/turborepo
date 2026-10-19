@@ -75,6 +75,12 @@ docker exec -i postgres psql -U postgres -c "CREATE DATABASE turborepo_test OWNE
 
 `pnpm verify` is the "is this repo healthy?" check; `pnpm verify:full` adds the browser tests (the first run downloads Chromium). Every test run rebuilds the test database from the committed migrations. Playwright starts its own api (port 3100) and web preview (port 5174), so it can run beside `pnpm dev`.
 
+- **Where tests live:** `<package>/test/*.test.ts` (Vitest) for `packages/shared` (schema units), `packages/db` (migrations) and `apps/api` (integration tests through `app.inject()`, against the real app and database), and `e2e/tests/` (Playwright). Test files share one database, so they run one at a time; don't run Vitest and Playwright at the same time.
+- **API helpers** (`apps/api/test/helpers/`): `createTestApp()` builds the real app with dummy config, `createTestSession(app)` inserts a user and returns real auth cookies to pass to `inject`, and `factories.ts` holds a `createX(db, overrides)` per table (add one per new table).
+- **OAuth** is tested offline: `stubGoogleTokenEndpoint()` replaces the `fetch` call to Google's token endpoint with an unsigned id_token, and `startSignIn(app)` gives the state and cookies for `/callback`. Stripe webhooks are signed locally; checkout, portal and sync call Stripe's API and aren't tested.
+- **New endpoints** should come with integration tests for: no session (401), invalid input (400), the happy path, and, for anything a user owns, that another user can't read or change it (see `GET /billing/subscription` in `apps/api/test/billing.test.ts`).
+- **E2E:** import `test`/`expect` from `e2e/support/fixtures.ts`, so a test fails on any page or console error. The suite is signed in through `createTestSession`, not Google. To look at a page, `pnpm e2e:shots <route>` (or `captureScreenshot(page, name)` in a test) saves a screenshot to `e2e/screenshots/`.
+
 ## Adding a database migration
 
 1. Edit `packages/db/src/schema.ts`
