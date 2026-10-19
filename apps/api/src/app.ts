@@ -77,12 +77,19 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
       });
     }
 
-    req.log.error({ err }, 'request failed');
     const statusCode = err.statusCode ?? 500;
-    // Never leak internal error details on a 500 in production; 4xx errors
-    // (validation, auth) carry safe, intentional messages.
-    if (statusCode >= 500 && config.isProd) {
-      return reply.code(statusCode).send({ error: 'internal_server_error' });
+    if (statusCode >= 500) {
+      req.log.error({ err }, 'request failed');
+      // Never leak internal error details in production.
+      if (config.isProd) {
+        return reply.code(statusCode).send({ error: 'internal_server_error' });
+      }
+    } else {
+      // Client errors are expected traffic, so keep them out of error-level logs.
+      req.log.info({ err }, 'request rejected');
+      if (statusCode === 429) {
+        return reply.code(429).send({ error: 'rate_limited' });
+      }
     }
     return reply.code(statusCode).send({ error: err.message });
   });
@@ -135,7 +142,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
     // Client-side routes: a browser navigation to any non-api path gets the SPA shell.
     const isPageLoad =
       (req.method === 'GET' || req.method === 'HEAD') &&
-      !req.url.startsWith('/api/') &&
+      !/^\/api(\/|\?|$)/.test(req.url) &&
       req.headers.accept?.includes('text/html');
     if (isPageLoad && serveWeb) {
       return reply.sendFile('index.html');

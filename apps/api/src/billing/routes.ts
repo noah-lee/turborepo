@@ -9,7 +9,11 @@ import type { SubscriptionResponse } from '@repo/shared/schemas';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import type Stripe from 'stripe';
-import { extractCustomerId, syncSubscriptionForCustomer } from './sync.ts';
+import {
+  ENDED_SUBSCRIPTION_STATUSES,
+  extractCustomerId,
+  syncSubscriptionForCustomer,
+} from './sync.ts';
 
 const SUBSCRIPTION_SYNC_EVENTS = new Set<Stripe.Event.Type>([
   'checkout.session.completed',
@@ -22,9 +26,6 @@ const SUBSCRIPTION_SYNC_EVENTS = new Set<Stripe.Event.Type>([
   'invoice.payment_failed',
   'invoice.payment_action_required',
 ]);
-
-// Any other status is a subscription the customer still manages through the portal.
-const ENDED_SUBSCRIPTION_STATUSES = new Set(['canceled', 'incomplete_expired']);
 
 async function handleEvent(
   app: FastifyInstance,
@@ -109,7 +110,7 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
         const signature = req.headers['stripe-signature'];
         if (!rawBody || typeof signature !== 'string') {
           reply.code(400);
-          return { error: 'missing signature' };
+          return { error: 'missing_signature' };
         }
 
         let event: Stripe.Event;
@@ -122,7 +123,7 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
         } catch (err) {
           app.log.warn({ err }, 'stripe webhook signature verification failed');
           reply.code(400);
-          return { error: 'invalid signature' };
+          return { error: 'invalid_signature' };
         }
 
         // The processed-event marker commits atomically with the handler's
@@ -144,7 +145,7 @@ export const billingRoutes: FastifyPluginAsync = async (app) => {
             'webhook handler failed',
           );
           reply.code(500);
-          return { error: 'handler failed' };
+          return { error: 'handler_failed' };
         }
 
         return { received: true };
