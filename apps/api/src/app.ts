@@ -106,6 +106,18 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
       // doesn't spend it. The Stripe webhook opts out (billing/routes.ts) so provider
       // retries are never throttled.
       await api.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+      // rate-limit appends its hook after the route's own onRequest hooks, so a route
+      // guarded by authenticate would 401 without counting the request. Move it first.
+      api.addHook('onRoute', (route) => {
+        if (
+          route.config?.rateLimit === false ||
+          !Array.isArray(route.onRequest)
+        ) {
+          return;
+        }
+        const limiter = route.onRequest.pop();
+        if (limiter) route.onRequest.unshift(limiter);
+      });
       await api.register(authRoutesPlugin);
       await api.register(billingRoutes, { prefix: '/billing' });
 
