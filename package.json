@@ -16,7 +16,12 @@
     "test": "turbo run test",
     "db:generate": "pnpm --filter @repo/db db:generate",
     "db:migrate": "pnpm --filter @repo/db db:migrate",
-    "db:studio": "pnpm --filter @repo/db db:studio"
+    "db:studio": "pnpm --filter @repo/db db:studio",
+    "test:e2e": "pnpm --filter @repo/e2e test:e2e",
+    "e2e:shots": "pnpm --filter @repo/e2e shots",
+    "verify": "node scripts/verify.mjs",
+    "verify:full": "node scripts/verify.mjs --full",
+    "db:check": "pnpm --filter @repo/db db:check"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
