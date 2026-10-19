@@ -1,7 +1,7 @@
 import { stripeEvents, stripeSubscriptions } from '@repo/db';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { apiScope, createTestApp } from './helpers/app.ts';
+import { createTestApp } from './helpers/app.ts';
 import { TEST_ENV } from './helpers/config.ts';
 import { createTestSession } from './helpers/session.ts';
 
@@ -30,8 +30,8 @@ describe('POST /api/billing/webhook', () => {
       payload,
     });
 
-  const signed = async () =>
-    (await apiScope(app)).stripe.webhooks.generateTestHeaderString({
+  const signed = () =>
+    app.stripe.webhooks.generateTestHeaderString({
       payload,
       secret: TEST_ENV.STRIPE_WEBHOOK_SECRET,
     });
@@ -50,11 +50,11 @@ describe('POST /api/billing/webhook', () => {
   });
 
   it('accepts a signed event once and treats a replay as a no-op', async () => {
-    const first = await post({ 'stripe-signature': await signed() });
+    const first = await post({ 'stripe-signature': signed() });
     expect(first.statusCode).toBe(200);
     expect(first.json()).toEqual({ received: true });
 
-    const replay = await post({ 'stripe-signature': await signed() });
+    const replay = await post({ 'stripe-signature': signed() });
     expect(replay.statusCode).toBe(200);
 
     const rows = await app.db.select().from(stripeEvents);

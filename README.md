@@ -43,7 +43,7 @@ The API validates its env at startup and exits if anything is missing. A fresh c
 
 The Google redirect URI is derived as `<APP_ORIGIN>/api/auth/google/callback`; register that exact URL (for both dev and production) on the OAuth client. Optional: `PORT` (3000), `LOG_LEVEL` (info).
 
-Billing is included by default. A project that doesn't need it can delete `apps/api/src/billing` (and its registration in `app.ts`), the billing UI in `apps/web` (`src/features/billing`, `BillingSection` in `routes/_app/account.tsx`, `useCheckoutToast` in `routes/__root.tsx`), the `stripe_*` tables in `packages/db/src/schema.ts` (then `pnpm db:generate`), the billing schemas in `packages/shared/src/schemas.ts`, the `STRIPE_*` env in `config.ts` and `.env.example`, and `stripe` from `apps/api/package.json`. `isPremium` crosses into auth too: drop the `stripe_subscriptions` join from `GET /auth/me` in `apps/api/src/auth/routes.ts`, the field from `meResponseSchema`, and the Premium badge in `account.tsx`.
+Billing is included by default. A project that doesn't need it can delete `apps/api/src/billing` (and the `billingPlugin`/`billingRoutes` registrations in `app.ts`), the billing UI in `apps/web` (`src/features/billing`, `BillingSection` in `routes/_app/account.tsx`, `useCheckoutToast` in `routes/__root.tsx`), the `stripe_*` tables in `packages/db/src/schema.ts` (then `pnpm db:generate`), the billing schemas in `packages/shared/src/schemas.ts`, the `STRIPE_*` env in `config.ts` and `.env.example`, and `stripe` from `apps/api/package.json`. `isPremium` crosses into auth too: drop the `stripe_subscriptions` join from `GET /auth/me` in `apps/api/src/auth/routes.ts`, the field from `meResponseSchema`, and the Premium badge in `account.tsx`.
 
 ## Scripts
 

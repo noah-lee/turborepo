@@ -1,6 +1,6 @@
 import fastifyCookie from '@fastify/cookie';
 import fastifyJwt from '@fastify/jwt';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { googleProvider } from './oauth/google.ts';
 import { oauthRoutes } from './oauth/routes.ts';
@@ -23,6 +23,8 @@ declare module 'fastify' {
   }
 }
 
+// Registered on the root app, so `authenticate` and `jwt` are visible to every scope
+// (and to tests). The routes go in `authRoutesPlugin`, inside the /api scope.
 export const authPlugin = fp(async (app) => {
   const { config } = app;
 
@@ -52,14 +54,16 @@ export const authPlugin = fp(async (app) => {
       }
     },
   );
+});
 
+export const authRoutesPlugin: FastifyPluginAsync = async (app) => {
   await app.register(authRoutes, { prefix: '/auth' });
   // A new provider is a module beside oauth/google.ts, its id in `authProviderSchema`,
   // and an entry here.
-  for (const provider of [googleProvider(config)]) {
+  for (const provider of [googleProvider(app.config)]) {
     await app.register(oauthRoutes, {
       prefix: `/auth/${provider.id}`,
       provider,
     });
   }
-});
+};

@@ -11,8 +11,9 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
-import { authPlugin } from './auth/plugin.ts';
+import { authPlugin, authRoutesPlugin } from './auth/plugin.ts';
 import { billingPlugin } from './billing/plugin.ts';
+import { billingRoutes } from './billing/routes.ts';
 import type { Config } from './config.ts';
 
 // The built SPA, beside dist/ in the image (the Dockerfile copies it there). Absent in dev,
@@ -94,14 +95,19 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
     return reply.code(statusCode).send({ error: err.message });
   });
 
+  // Shared services (cookies, jwt, authenticate, stripe) decorate the root, so every scope
+  // sees them; routes stay in the /api scope below. Must come before the routes use them.
+  await app.register(authPlugin);
+  await app.register(billingPlugin);
+
   await app.register(
     async (api) => {
       // Coarse per-IP limit across the api. Scoped here so loading the SPA's assets
       // doesn't spend it. The Stripe webhook opts out (billing/routes.ts) so provider
       // retries are never throttled.
       await api.register(rateLimit, { max: 100, timeWindow: '1 minute' });
-      await api.register(authPlugin);
-      await api.register(billingPlugin);
+      await api.register(authRoutesPlugin);
+      await api.register(billingRoutes, { prefix: '/billing' });
 
       api.get('/health', async () => ({ status: 'ok' }));
 
