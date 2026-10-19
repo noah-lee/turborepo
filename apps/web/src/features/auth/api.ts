@@ -38,7 +38,7 @@ export function signIn() {
 // Set `me` to null rather than invalidating it: the route guards read it with
 // ensureQueryData, which happily returns a stale cached user, and nothing
 // subscribes to it, so an invalidation never refetches. Clearing first drops
-// the old user's logs and targets.
+// every cached query that belonged to the old user.
 function useSignedOut() {
   const qc = useQueryClient()
   return () => {

@@ -16,7 +16,8 @@ function invalidateBilling(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY })
 }
 
-async function postCheckout(url: string): Promise<CheckoutResponse> {
+// Both endpoints answer with a Stripe-hosted URL to send the browser to.
+async function postForRedirect(url: string): Promise<CheckoutResponse> {
   const { data } = await api.post(url, {})
   return checkoutResponseSchema.parse(data)
 }
@@ -24,7 +25,7 @@ async function postCheckout(url: string): Promise<CheckoutResponse> {
 export function useStartSubscription() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => postCheckout("/billing/checkout"),
+    mutationFn: () => postForRedirect("/billing/checkout"),
     // 409 already_subscribed: the server just synced from Stripe, so refresh what's shown.
     onError: (err) => {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
@@ -36,7 +37,7 @@ export function useStartSubscription() {
 
 export function usePortal() {
   return useMutation({
-    mutationFn: () => postCheckout("/billing/portal"),
+    mutationFn: () => postForRedirect("/billing/portal"),
   })
 }
 

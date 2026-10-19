@@ -54,5 +54,3 @@ export const stripeEvents = pgTable('stripe_events', {
 });
 
 export type SelectUser = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type SelectStripeSubscription = typeof stripeSubscriptions.$inferSelect;
