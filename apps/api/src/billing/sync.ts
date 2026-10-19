@@ -8,6 +8,12 @@ import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
 import type { StripeClient } from './stripe.ts';
 
+// Any other status is a subscription the customer still manages through the portal.
+export const ENDED_SUBSCRIPTION_STATUSES = new Set<string>([
+  'canceled',
+  'incomplete_expired',
+]);
+
 export async function selectUserIdByCustomerId(
   db: Database | Transaction,
   customerId: string,
@@ -55,12 +61,16 @@ export async function syncSubscriptionForCustomer(
   const userId = await selectUserIdByCustomerId(db, customerId);
   if (!userId) return 'unknown_customer';
 
+  // Newest first. Prefer one that hasn't ended: a newer abandoned or expired one must not
+  // mask an older live subscription.
   const subs = await stripe.subscriptions.list({
     customer: customerId,
     status: 'all',
-    limit: 1,
+    limit: 10,
   });
-  const subscription = subs.data[0];
+  const subscription =
+    subs.data.find((sub) => !ENDED_SUBSCRIPTION_STATUSES.has(sub.status)) ??
+    subs.data[0];
 
   if (!subscription) {
     await db
