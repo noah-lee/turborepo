@@ -1,3 +1,4 @@
+import { type AuthProvider, authProviderSchema } from "@repo/shared/schemas"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { CircleAlert, CreditCard, KeyRound, ShieldCheck } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -13,13 +14,17 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item"
-import { useMe } from "@/features/auth/api"
+import { authProviderLabels, useMe } from "@/features/auth/api"
 import { SignInButton } from "@/features/auth/sign-in-button"
 import { site } from "@/lib/site"
 
 export const Route = createFileRoute("/")({
-  // The API's OAuth callback sends any failure back here as `?error=oauth`.
-  validateSearch: z.object({ error: z.string().optional() }),
+  // The API's OAuth callback sends failures back here: `?error=oauth`, or
+  // `?error=email_in_use&provider=<the provider that email signed up with>`.
+  validateSearch: z.object({
+    error: z.string().optional(),
+    provider: authProviderSchema.optional().catch(undefined),
+  }),
   component: Landing,
 })
 
@@ -42,13 +47,22 @@ const FEATURES = [
   },
 ] as const
 
+function signInErrorMessage(error: string, provider?: AuthProvider) {
+  if (error !== "email_in_use") return "Sign-in didn't complete. Try again."
+  return provider
+    ? `That email already has an account. Sign in with ${authProviderLabels[provider]} instead.`
+    : "That email already has an account. Sign in the way you did before."
+}
+
 function Landing() {
   const me = useMe()
-  const { error } = Route.useSearch()
+  const { error, provider } = Route.useSearch()
   const navigate = Route.useNavigate()
-  const [showError, setShowError] = useState(Boolean(error))
+  const [errorMessage, setErrorMessage] = useState(
+    error ? signInErrorMessage(error, provider) : null,
+  )
 
-  // Drop `?error` once read, so a reload or coming back from Google doesn't show a stale banner.
+  // Drop `?error` once read, so a reload or coming back from the provider doesn't show a stale banner.
   useEffect(() => {
     if (error) navigate({ search: {}, replace: true })
   }, [error, navigate])
@@ -63,12 +77,10 @@ function Landing() {
           {site.description}
         </p>
 
-        {showError && (
+        {errorMessage && (
           <Alert variant="destructive" className="sm:max-w-sm">
             <CircleAlert />
-            <AlertDescription>
-              Sign-in didn't complete. Try again.
-            </AlertDescription>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
 
@@ -83,7 +95,7 @@ function Landing() {
               <SignInButton
                 size="lg"
                 className="w-full sm:w-auto"
-                onStart={() => setShowError(false)}
+                onStart={() => setErrorMessage(null)}
               />
             )
           )}

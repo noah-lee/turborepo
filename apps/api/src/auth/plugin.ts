@@ -2,7 +2,8 @@ import fastifyCookie from '@fastify/cookie';
 import fastifyJwt from '@fastify/jwt';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { googleRoutes } from './google/routes.ts';
+import { googleProvider } from './oauth/google.ts';
+import { oauthRoutes } from './oauth/routes.ts';
 import { authRoutes } from './routes.ts';
 import { type AccessTokenPayload, accessCookieName } from './tokens.ts';
 
@@ -53,5 +54,12 @@ export const authPlugin = fp(async (app) => {
   );
 
   await app.register(authRoutes, { prefix: '/auth' });
-  await app.register(googleRoutes, { prefix: '/auth/google' });
+  // A new provider is a module beside oauth/google.ts, its id in `authProviderSchema`,
+  // and an entry here.
+  for (const provider of [googleProvider(config)]) {
+    await app.register(oauthRoutes, {
+      prefix: `/auth/${provider.id}`,
+      provider,
+    });
+  }
 });

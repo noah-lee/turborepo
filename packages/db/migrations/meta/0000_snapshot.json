@@ -1,5 +1,5 @@
 {
-  "id": "f6049d4e-d698-4590-ac91-ea9743830c38",
+  "id": "6021cfa9-c8f2-4404-8db2-c5358e114c60",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -161,8 +161,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "google_sub": {
-          "name": "google_sub",
+        "auth_provider": {
+          "name": "auth_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "auth_provider_id": {
+          "name": "auth_provider_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -210,10 +216,10 @@
           "nullsNotDistinct": false,
           "columns": ["email"]
         },
-        "users_google_sub_unique": {
-          "name": "users_google_sub_unique",
+        "users_auth_provider_account_unique": {
+          "name": "users_auth_provider_account_unique",
           "nullsNotDistinct": false,
-          "columns": ["google_sub"]
+          "columns": ["auth_provider", "auth_provider_id"]
         }
       },
       "policies": {},

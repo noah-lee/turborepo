@@ -1,4 +1,8 @@
-import { type MeResponse, meResponseSchema } from "@repo/shared/schemas"
+import {
+  type AuthProvider,
+  type MeResponse,
+  meResponseSchema,
+} from "@repo/shared/schemas"
 import {
   queryOptions,
   useMutation,
@@ -31,8 +35,12 @@ export function useMe() {
   return useQuery(meQueryOptions)
 }
 
-export function signIn() {
-  window.location.href = "/api/auth/google/start"
+export const authProviderLabels: Record<AuthProvider, string> = {
+  google: "Google",
+}
+
+export function signIn(provider: AuthProvider) {
+  window.location.href = `/api/auth/${provider}/start`
 }
 
 // Set `me` to null rather than invalidating it: the route guards read it with

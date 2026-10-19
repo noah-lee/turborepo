@@ -1,23 +1,43 @@
-import { boolean, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 // Every timestamp is precision 3 (milliseconds), matching a JS Date, so values
 // round-trip exactly (e.g. for a timestamp-based pagination cursor).
 
-export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  email: text('email').notNull().unique(),
-  googleSub: text('google_sub').notNull().unique(),
-  name: text('name'),
-  picture: text('picture'),
-  sessionId: uuid('session_id').defaultRandom().notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
+// One sign-in method per user: the provider that created the account, and that
+// provider's stable user id (e.g. the OIDC `sub`). Signing in through a different
+// provider with an email that's already taken is refused, not linked.
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    email: text('email').notNull().unique(),
+    authProvider: text('auth_provider').notNull(),
+    authProviderId: text('auth_provider_id').notNull(),
+    name: text('name'),
+    picture: text('picture'),
+    sessionId: uuid('session_id').defaultRandom().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    unique('users_auth_provider_account_unique').on(
+      t.authProvider,
+      t.authProviderId,
+    ),
+  ],
+);
 
 export const stripeCustomers = pgTable('stripe_customers', {
   userId: uuid('user_id')

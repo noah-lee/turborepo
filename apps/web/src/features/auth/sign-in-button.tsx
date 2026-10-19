@@ -1,15 +1,18 @@
+import type { AuthProvider } from "@repo/shared/schemas"
 import { type ComponentProps, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { signIn } from "@/features/auth/api"
+import { authProviderLabels, signIn } from "@/features/auth/api"
 import { cn } from "@/lib/utils"
 
 export function SignInButton({
+  provider = "google",
   onStart,
   className,
-  children = "Sign in with Google",
+  children = `Sign in with ${authProviderLabels[provider]}`,
   ...props
 }: Omit<ComponentProps<typeof Button>, "onClick" | "asChild"> & {
+  provider?: AuthProvider
   onStart?: () => void
 }) {
   const [redirecting, setRedirecting] = useState(false)
@@ -35,7 +38,7 @@ export function SignInButton({
         if (redirecting) return
         setRedirecting(true)
         onStart?.()
-        signIn()
+        signIn(provider)
       }}
     >
       {redirecting && <Spinner data-icon="inline-start" />}
