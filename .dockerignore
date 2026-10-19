@@ -16,3 +16,9 @@
 .idea
 
 **/*.md
+
+**/.auth
+**/playwright-report
+**/test-results
+**/screenshots
+**/.migrations-check
