@@ -58,7 +58,11 @@ const googleTokenResponseSchema = z.object({
   id_token: z.string(),
 });
 
+// The id_token comes straight from Google's token endpoint over TLS, so its signature
+// needn't be checked (OIDC Core 3.1.3.7), but its issuer and audience must be.
 const idTokenPayloadSchema = z.object({
+  iss: z.enum(['https://accounts.google.com', 'accounts.google.com']),
+  aud: z.string(),
   sub: z.string(),
   email: z.email(),
   email_verified: z.boolean(),
@@ -115,7 +119,7 @@ export const googleRoutes: FastifyPluginAsync = async (app) => {
   };
 
   app.get('/callback', async (req, reply) => {
-    // State and PCKE verification
+    // State and PKCE verification
     const queryResult = callbackQuerySchema.safeParse(req.query);
     if (!queryResult.success) {
       return failSignIn(reply, 'missing code or state');
@@ -184,6 +188,9 @@ export const googleRoutes: FastifyPluginAsync = async (app) => {
       return failSignIn(reply, 'invalid id_token');
     }
     const payload = payloadParse.data;
+    if (payload.aud !== config.GOOGLE_CLIENT_ID) {
+      return failSignIn(reply, 'id_token audience mismatch');
+    }
     if (!payload.email_verified) {
       return failSignIn(reply, 'email not verified');
     }
