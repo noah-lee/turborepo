@@ -15,6 +15,10 @@ import { authPlugin, authRoutesPlugin } from './auth/plugin.ts';
 import { billingPlugin } from './billing/plugin.ts';
 import { billingRoutes } from './billing/routes.ts';
 import type { Config } from './config.ts';
+import { fileRoutes } from './files/routes.ts';
+import type { StorageDriver } from './storage/driver.ts';
+import { storagePlugin } from './storage/plugin.ts';
+import { s3BucketOrigin } from './storage/s3.ts';
 
 // The built SPA, beside dist/ in the image (the Dockerfile copies it there). Absent in dev,
 // where Vite serves the SPA and proxies /api here.
@@ -27,7 +31,15 @@ declare module 'fastify' {
   }
 }
 
-export async function buildApp(config: Config): Promise<FastifyInstance> {
+export type BuildOptions = {
+  // Tests inject an in-memory driver; otherwise the bucket from config.
+  storageDriver?: StorageDriver;
+};
+
+export async function buildApp(
+  config: Config,
+  options: BuildOptions = {},
+): Promise<FastifyInstance> {
   const app = Fastify({
     logger: { level: config.LOG_LEVEL },
     // Behind the host's TLS proxy (via Docker's port forwarding), the socket peer is a
@@ -42,14 +54,14 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  // No CORS plugin: the SPA and api share one origin, so the browser never makes a
-  // cross-origin call.
+  // No CORS plugin: the SPA and api share one origin. The one cross-origin party is the
+  // S3 bucket, which the browser uploads to directly (its CORS rules live on the bucket).
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
         imgSrc: ["'self'", 'https:', 'data:'],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", s3BucketOrigin(config)],
         frameAncestors: ["'none'"],
       },
     },
@@ -95,10 +107,13 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
     return reply.code(statusCode).send({ error: err.message });
   });
 
-  // Shared services (cookies, jwt, authenticate, stripe) decorate the root, so every scope
-  // sees them; routes stay in the /api scope below. Must come before the routes use them.
+  // Shared services (cookies, jwt, authenticate, stripe, storage) decorate the root, so every
+  // scope sees them; routes stay in the /api scope below. Must come before the routes use them.
   await app.register(authPlugin);
   await app.register(billingPlugin);
+  await app.register(storagePlugin, {
+    ...(options.storageDriver && { driver: options.storageDriver }),
+  });
 
   await app.register(
     async (api) => {
@@ -120,6 +135,7 @@ export async function buildApp(config: Config): Promise<FastifyInstance> {
       });
       await api.register(authRoutesPlugin);
       await api.register(billingRoutes, { prefix: '/billing' });
+      await api.register(fileRoutes, { prefix: '/files' });
 
       api.get('/health', async () => ({ status: 'ok' }));
 

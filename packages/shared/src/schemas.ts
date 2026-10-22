@@ -42,3 +42,55 @@ export const checkoutResponseSchema = z.object({
 });
 
 export type CheckoutResponse = z.infer<typeof checkoutResponseSchema>;
+
+export const MAX_FILE_BYTES = 25 * 1024 * 1024;
+
+export const fileSchema = z.object({
+  id: z.uuid(),
+  fileName: z.string(),
+  contentType: z.string(),
+  sizeBytes: z.number().int(),
+  uploadedAt: z.iso.datetime(),
+});
+
+export type FileItem = z.infer<typeof fileSchema>;
+
+export const fileListResponseSchema = z.object({
+  files: z.array(fileSchema),
+});
+
+export type FileListResponse = z.infer<typeof fileListResponseSchema>;
+
+export const fileIdParamsSchema = z.object({
+  fileId: z.uuid(),
+});
+
+export const createFileBodySchema = z.object({
+  fileName: z.string().trim().min(1).max(255),
+  // Browsers report "" for unknown types; send application/octet-stream instead.
+  contentType: z
+    .string()
+    .max(255)
+    .regex(/^[\w.+-]+\/[\w.+-]+$/, 'Must be a MIME type'),
+  sizeBytes: z.number().int().min(1).max(MAX_FILE_BYTES),
+});
+
+export type CreateFileBody = z.infer<typeof createFileBodySchema>;
+
+export const createFileResponseSchema = z.object({
+  fileId: z.uuid(),
+  // A presigned bucket URL the browser PUTs the bytes to, sending `headers`.
+  uploadUrl: z.url(),
+  method: z.literal('PUT'),
+  headers: z.record(z.string(), z.string()),
+  expiresAt: z.iso.datetime(),
+});
+
+export type CreateFileResponse = z.infer<typeof createFileResponseSchema>;
+
+export const downloadUrlResponseSchema = z.object({
+  url: z.url(),
+  expiresAt: z.iso.datetime(),
+});
+
+export type DownloadUrlResponse = z.infer<typeof downloadUrlResponseSchema>;

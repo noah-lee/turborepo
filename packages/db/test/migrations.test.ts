@@ -21,6 +21,7 @@ describe('migrations', () => {
     const tables = await sql<{ tablename: string }[]>`
       SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`;
     expect(tables.map((t) => t.tablename)).toEqual([
+      'files',
       'stripe_customers',
       'stripe_events',
       'stripe_subscriptions',

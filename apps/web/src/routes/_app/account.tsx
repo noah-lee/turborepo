@@ -19,6 +19,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { useMe, useSignOut, useSignOutEverywhere } from "@/features/auth/api"
 import { BillingSection } from "@/features/billing/billing-section"
+import { FilesSection } from "@/features/files/files-section"
 import { useTheme } from "@/providers/theme-provider"
 
 export const Route = createFileRoute("/_app/account")({
@@ -53,6 +54,8 @@ function Account() {
       </section>
       <Separator />
       <BillingSection user={me} />
+      <Separator />
+      <FilesSection />
       <Separator />
       <AppearanceSection />
       <Separator />

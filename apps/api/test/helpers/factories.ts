@@ -1,5 +1,7 @@
 import {
   type Database,
+  files,
+  type SelectFile,
   type SelectUser,
   type Transaction,
   users,
@@ -29,4 +31,25 @@ export async function createUser(
     .returning();
   if (!user) throw new Error('createUser: insert returned no row');
   return user;
+}
+
+// An uploaded file by default; pass `uploadedAt: null` for one still pending.
+export async function createFile(
+  db: Database | Transaction,
+  overrides: Partial<typeof files.$inferInsert> & { userId: string },
+): Promise<SelectFile> {
+  const n = nextSeq();
+  const [file] = await db
+    .insert(files)
+    .values({
+      fileName: `file-${n}.txt`,
+      contentType: 'text/plain',
+      sizeBytes: 11,
+      storageKey: `users/${overrides.userId}/${crypto.randomUUID()}`,
+      uploadedAt: new Date(),
+      ...overrides,
+    })
+    .returning();
+  if (!file) throw new Error('createFile: insert returned no row');
+  return file;
 }

@@ -1,5 +1,7 @@
 import {
   boolean,
+  index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -73,4 +75,26 @@ export const stripeEvents = pgTable('stripe_events', {
     .notNull(),
 });
 
+// An object in the S3 bucket. A row is written before the browser uploads; `uploadedAt`
+// stays null until the api has seen the object at exactly `sizeBytes`.
+export const files = pgTable(
+  'files',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    fileName: text('file_name').notNull(),
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    storageKey: text('storage_key').notNull().unique(),
+    uploadedAt: timestamp('uploaded_at', { withTimezone: true, precision: 3 }),
+    createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index('files_user_id_idx').on(t.userId)],
+);
+
 export type SelectUser = typeof users.$inferSelect;
+export type SelectFile = typeof files.$inferSelect;

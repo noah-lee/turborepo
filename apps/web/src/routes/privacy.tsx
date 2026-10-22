@@ -7,7 +7,8 @@ import {
 import { site } from "@/lib/site"
 
 // Public: Google's OAuth brand verification reads this page. A starting template that matches
-// what the scaffold stores and sends (the users and stripe_* tables, the OAuth scopes, Stripe).
+// what the scaffold stores and sends (the users, stripe_* and files tables, uploaded files in
+// object storage, the OAuth scopes, Stripe).
 // Keep it in step with the product, and bump site.legalUpdated when it changes.
 export const Route = createFileRoute("/privacy")({
   component: Privacy,
@@ -43,6 +44,11 @@ function Privacy() {
           by Stripe. {site.name} stores your Stripe customer ID and your
           subscription's status and renewal date. Your card details go directly
           to Stripe and never reach {site.name}'s servers.
+        </p>
+        <p>
+          <strong className="font-medium">Files you upload.</strong> Files you
+          upload, with their name, type and size, are kept so you can download
+          them again. Only you can access them.
         </p>
         <p>
           <strong className="font-medium">Technical data.</strong> Sign-in
@@ -82,8 +88,10 @@ function Privacy() {
 
       <LegalSection title="Storage and security">
         <p>
-          Data is stored in a database on {site.name}'s own server. Connections
-          use HTTPS, and sign-in cookies are HTTP-only and secure.
+          Data is stored in a database on {site.name}'s own server. Uploaded
+          files are stored in a private DigitalOcean Spaces bucket and reached
+          only through short-lived signed links. Connections use HTTPS, and
+          sign-in cookies are HTTP-only and secure.
         </p>
       </LegalSection>
 
@@ -91,8 +99,10 @@ function Privacy() {
         <p>
           Your data is kept while your account exists. To delete your account,
           email <ContactLink /> from the address you sign in with. Your account
-          and its data will be permanently deleted within 30 days. Server logs
-          are kept for a limited time and then removed.
+          and its data, including uploaded files, will be permanently deleted
+          within 30 days. You can delete an uploaded file yourself at any time
+          from your account page. Server logs are kept for a limited time and
+          then removed.
         </p>
         <p>
           You can also revoke {site.name}'s access at any time from your{" "}

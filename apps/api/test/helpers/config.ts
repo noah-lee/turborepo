@@ -16,6 +16,11 @@ export const TEST_ENV = {
   STRIPE_SECRET_KEY: 'sk_test_dummy',
   STRIPE_WEBHOOK_SECRET: 'whsec_test_dummy',
   STRIPE_PREMIUM_PRICE_ID: 'price_test_dummy',
+  // Vitest swaps in the memory driver; the e2e api presigns against this offline.
+  S3_ENDPOINT: 'https://storage.test',
+  S3_BUCKET: 'test-bucket',
+  S3_ACCESS_KEY_ID: 'test-access-key',
+  S3_SECRET_ACCESS_KEY: 'test-secret-key',
 } as const;
 
 export function createTestConfig(overrides: Partial<Config> = {}): Config {
@@ -24,6 +29,7 @@ export function createTestConfig(overrides: Partial<Config> = {}): Config {
     PORT: 0,
     HOST: '127.0.0.1',
     DATABASE_URL: testDatabaseUrl(),
+    S3_REGION: 'us-east-1',
     isProd: false,
     ...overrides,
   };

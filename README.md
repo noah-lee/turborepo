@@ -39,11 +39,27 @@ The API validates its env at startup and exits if anything is missing. A fresh c
 - Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
 - Token/cookie secrets: `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `COOKIE_SECRET` (generate with `openssl rand -base64 48`)
 - Stripe billing: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PREMIUM_PRICE_ID` — `.env.example` documents how to obtain each, including running `stripe listen` to forward webhooks in local dev.
+- File storage: `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` — one bucket for dev and one for production (see "File storage")
 - Production only: `APP_ORIGIN=https://your.domain` (defaults to `http://localhost:5173` in dev)
 
 The Google redirect URI is derived as `<APP_ORIGIN>/api/auth/google/callback`; register that exact URL (for both dev and production) on the OAuth client. Optional: `PORT` (3000), `LOG_LEVEL` (info).
 
 Billing is included by default. A project that doesn't need it can delete `apps/api/src/billing` (and the `billingPlugin`/`billingRoutes` registrations in `app.ts`), the billing UI in `apps/web` (`src/features/billing`, `BillingSection` in `routes/_app/account.tsx`, `useCheckoutToast` in `routes/__root.tsx`), the `stripe_*` tables in `packages/db/src/schema.ts` (then `pnpm db:generate`), the billing schemas in `packages/shared/src/schemas.ts`, the `STRIPE_*` env in `config.ts` and `.env.example`, and `stripe` from `apps/api/package.json`. `isPremium` crosses into auth too: drop the `stripe_subscriptions` join from `GET /auth/me` in `apps/api/src/auth/routes.ts`, the field from `meResponseSchema`, and the Premium badge in `account.tsx`.
+
+### File storage
+
+The browser uploads files straight to an S3-compatible bucket (DigitalOcean Spaces by default) and downloads them from there, through short-lived signed URLs the api hands out; the api never carries the bytes. Set `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (and `S3_REGION` if the provider needs one); the api refuses to boot without them. The bucket's origin is added to the CSP automatically.
+
+Dev and production each get their own bucket, so local work never touches real files:
+
+1. Create two Spaces (buckets), e.g. `myapp-dev` and `myapp-prod`, in the same region, with file listing restricted and the CDN off.
+2. Create an access key per bucket, limited to that bucket (read/write/delete).
+3. Set each bucket's CORS rules to allow `PUT`, `GET` and `HEAD` from its app origin (`http://localhost:5173` for dev, `APP_ORIGIN` for production), with the `Content-Type` header allowed.
+4. Put the dev bucket's `S3_*` values in your local `.env` and the production bucket's in the VPS `.env`.
+
+The example feature is the **Files** section on `/account` (`apps/api/src/files/routes.ts`, `apps/web/src/features/files`): `POST /api/files` records a pending row and returns a signed PUT, the browser uploads, then `POST /api/files/:id/complete` checks the object exists at exactly the declared size before the file counts as uploaded. `GET /api/files/:id/download` signs a GET that saves the file as an attachment (so an uploaded HTML/SVG never renders), and `DELETE` removes the row, then the object. Objects live under `users/<userId>/`. Swap the `files` table and routes for whatever the product stores; keep the register → PUT → complete flow and `apps/api/src/storage/`.
+
+There is deliberately no local S3 server: tests never reach a bucket. `createTestApp()` injects an in-memory driver (`apps/api/test/helpers/memory-storage.ts`) and `putObject`/`uploadFile` in `test/helpers/files.ts` put objects into it directly; e2e answers the browser's bucket requests with `page.route`. The real path (presigned PUT, CORS, download) is only exercised against the dev bucket, so try an upload there after changing anything in `storage/s3.ts`.
 
 ## Scripts
 
@@ -125,7 +141,8 @@ bash ./scripts/add-app.sh turborepo
 cd ../turborepo
 cp .env.example .env       # paste DATABASE_URL_INTERNAL as DATABASE_URL, set
                            # APP_ORIGIN to your https domain, the Google OAuth client,
-                           # token secrets and STRIPE_* vars (all required to boot).
+                           # token secrets, STRIPE_* vars and the production
+                           # bucket's S3_* vars (all required to boot).
 bash deploy.sh             # build, validate env + migrate, start, prune old images
 ```
 
@@ -162,13 +179,15 @@ For one-off builds (e.g. registry push), without compose: `docker build -t turbo
 
 - **Auth** — Google OIDC + PKCE; access/refresh JWTs in HttpOnly cookies (`__Host-`/`__Secure-` prefixed in prod); global sign-out via a rotating `session_id`.
 - **Billing** — Stripe subscriptions: checkout, customer portal, and webhook sync with atomic idempotency. Single premium tier out of the box.
+- **File storage** — direct-to-S3 uploads and downloads through presigned URLs, separate dev and production buckets, and an example Files section on `/account`.
 - **Security** — `@fastify/helmet` (CSP and other security headers on every response, the SPA included) + a coarse per-IP `@fastify/rate-limit` on `/api` (the Stripe webhook is exempt).
 
 ### Extending
 
 - Add a route: create a plugin under `apps/api/src`, register it inside the `/api` scope in `app.ts`. Put Zod schemas in the route options (`fastify-type-provider-zod`) and guard with `{ onRequest: [app.authenticate] }`.
 - Add a shared type/contract: add a Zod schema in `packages/shared/src/schemas.ts` and consume it on both sides.
-- Add email or file uploads: there's no seam for these yet — decorate a provider onto the app the way `billing/plugin.ts` decorates `stripe` (e.g. `app.decorate('email', ...)`), and wire in an SDK (Resend/Postmark/SES, or S3/R2) when you actually need one.
+- Store files: use `app.storage` (`presignPut`, `presignGet`, `headSize`, `deleteMany`) the way `files/routes.ts` does, with keys from `storageKey(userId)`.
+- Add email: there's no seam for it yet — decorate a provider onto the app the way `storage/plugin.ts` decorates `storage` (e.g. `app.decorate('email', ...)`), and wire in an SDK (Resend/Postmark/SES) when you actually need one.
 
 ## Node 24 native TypeScript
 
